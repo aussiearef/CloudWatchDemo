@@ -1,8 +1,11 @@
 ﻿using System.Text.Json;
+using Amazon.CloudWatchLogs;
 using Amazon.CloudWatchLogs.Model;
 using AWS.Logger;
 using AWS.Logger.Core;
 using DemoDataPublisher.Models;
+
+var cwClient = new AmazonCloudWatchLogsClient();
 
 const string awsCloudWatchLogGroupName = "logging-in-aws";
 
@@ -14,6 +17,15 @@ var exceptions = new List<Exception>
     new JsonException("The provided Json cannot be de-serialized",
         new FileLoadException("File not found"))
 };
+
+var logGroupsResponse = await cwClient.DescribeLogGroupsAsync(new DescribeLogGroupsRequest
+{
+    Limit = 1,
+    LogGroupNamePattern = awsCloudWatchLogGroupName
+});
+
+if (!logGroupsResponse.LogGroups.Any())
+    await cwClient.CreateLogGroupAsync(new CreateLogGroupRequest(awsCloudWatchLogGroupName));
 var logger = new AWSLoggerCore(new AWSLoggerConfig(awsCloudWatchLogGroupName), "fail");
 
 for (var i = 0; i < 100; i++)
